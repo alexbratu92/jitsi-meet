@@ -11,6 +11,7 @@ const DEFAULT_STATE = {
     pendingNotificationUids: {},
     sessionDatas: []
 };
+import logger from './logger';
 
 /**
  * The name of the Redux store this feature stores its state in.
@@ -31,6 +32,7 @@ ReducerRegistry.register(STORE_NAME,
             };
 
         case RECORDING_SESSION_UPDATED:
+            logger.log('recording session: ' + JSON.stringify(action.sessionData))
             return {
                 ...state,
                 sessionDatas:

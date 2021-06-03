@@ -29,7 +29,8 @@ export function extractVpaasTenantFromPath(path: string) {
  * @returns {boolean}
  */
 export function isVpaasMeeting(state: Object) {
-    const { billingCounterUrl, iAmRecorder, iAmSipGateway } = state['features/base/config'];
+    return Boolean(true)
+    /* const { billingCounterUrl, iAmRecorder, iAmSipGateway } = state['features/base/config'];
     const { jwt } = state['features/base/jwt'];
 
     const isAllowed = iAmRecorder || iAmSipGateway || Boolean(jwt);
@@ -39,7 +40,7 @@ export function isVpaasMeeting(state: Object) {
         && extractVpaasTenantFromPath(
             state['features/base/connection'].locationURL.pathname)
         && isAllowed
-    );
+    ); */
 }
 
 /**

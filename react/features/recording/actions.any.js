@@ -1,6 +1,7 @@
 // @flow
 
 import JitsiMeetJS, { JitsiRecordingConstants } from '../base/lib-jitsi-meet';
+import { copyText } from '../base/util/helpers';
 import {
     NOTIFICATION_TIMEOUT,
     hideNotification,
@@ -14,6 +15,8 @@ import {
     SET_PENDING_RECORDING_NOTIFICATION_UID,
     SET_STREAM_KEY
 } from './actionTypes';
+import { isVpaasMeeting } from '../billing-counter/functions';
+import logger from './logger';
 
 /**
  * Clears the data of every recording sessions.
@@ -141,21 +144,51 @@ export function showStoppedRecordingNotification(streamType: string, participant
  * @param {string} participantName - The participant name that started the recording.
  * @returns {showNotification}
  */
-export function showStartedRecordingNotification(streamType: string, participantName: string) {
-    const isLiveStreaming
-        = streamType === JitsiMeetJS.constants.recording.mode.STREAM;
-    const descriptionArguments = { name: participantName };
-    const dialogProps = isLiveStreaming ? {
-        descriptionKey: participantName ? 'liveStreaming.onBy' : 'liveStreaming.on',
-        descriptionArguments,
-        titleKey: 'dialog.liveStreaming'
-    } : {
-        descriptionKey: participantName ? 'recording.onBy' : 'recording.on',
-        descriptionArguments,
-        titleKey: 'dialog.recording'
-    };
+export function showStartedRecordingNotification(streamType: string, 
+        participantName: string,
+        sessionId: string,
+        initiatorId: string) { 
+    return (dispatch, getState) => {
+        const iAmInitiator = true; //TODO
+        const isJaasMeeting = isVpaasMeeting(getState());
+        const { tenant } = isJaasMeeting ? getState()['features/base/jwt'] : ''; 
+        const serverRegion = 'us-west-2';
 
-    return showNotification(dialogProps, NOTIFICATION_TIMEOUT);
+        const { recordingSharingUrl } = getState()['features/base/config'];
+        const isLiveStreaming
+            = streamType === JitsiMeetJS.constants.recording.mode.STREAM;
+        const descriptionArguments = { name: participantName };
+        console.log('render recording notification. Am I recorder?' + iAmInitiator )
+        let copyLinkActionNameKey;
+        let copyLinkActionHandler;
+        let isDismissAllowed= true;
+        let titleKey = 'dialog.recording';
+        let description = 'recording.on';
+        if(iAmInitiator && isJaasMeeting) {
+            copyLinkActionNameKey = 'recording.copyLink';
+            copyLinkActionHandler = () => {
+                copyText(`https://api-vo-pilot.jitsi.net/jaas-recordings/${serverRegion}/${tenant}/${sessionId}`);
+                return true;
+            }
+            isDismissAllowed = false;
+            titleKey = 'recording.on';
+            description = 'recording.linkGenerated';
+        }
+        const dialogProps = isLiveStreaming ? {
+            descriptionKey: participantName ? 'liveStreaming.onBy' : 'liveStreaming.on',
+            descriptionArguments,
+            titleKey: 'dialog.liveStreaming'
+        } : {
+            descriptionKey: participantName ? 'recording.onBy' : description,
+            descriptionArguments,
+            customActionNameKey: copyLinkActionNameKey,
+            customActionHandler: copyLinkActionHandler,
+            isDismissAllowed,
+            titleKey
+        };
+
+        dispatch(showNotification(dialogProps));
+    }
 }
 
 /**
@@ -169,6 +202,7 @@ export function showStartedRecordingNotification(streamType: string, participant
  * }}
  */
 export function updateRecordingSessionData(session: Object) {
+    //logger.log('recording session data ' + JSON.stringify(session));
     const status = session.getStatus();
     const timestamp
         = status === JitsiRecordingConstants.status.ON

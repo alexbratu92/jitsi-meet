@@ -44,6 +44,7 @@ import {
     RECORDING_OFF_SOUND_FILE,
     RECORDING_ON_SOUND_FILE
 } from './sounds';
+import logger from './logger';
 
 declare var APP: Object;
 declare var interfaceConfig: Object;
@@ -111,8 +112,8 @@ MiddlewareRegistry.register(({ dispatch, getState }) => next => action => {
         conference.on(
             JitsiConferenceEvents.RECORDER_STATE_CHANGED,
             recorderSession => {
-
-                if (recorderSession) {
+                
+                                if (recorderSession) {
                     recorderSession.getID()
                         && dispatch(
                             updateRecordingSessionData(recorderSession));
@@ -160,8 +161,9 @@ MiddlewareRegistry.register(({ dispatch, getState }) => next => action => {
                     // Show notification with additional information to the initiator.
                     dispatch(showRecordingLimitNotification(mode));
                 } else {
-                    dispatch(showStartedRecordingNotification(
-                        mode, initiator && getParticipantDisplayName(getState, initiator.getId())));
+                    const initiatorId = initiator ? initiator.getId() : '';
+                    const initiatorName = initiator && getParticipantDisplayName(getState, initiatorId);
+                    dispatch(showStartedRecordingNotification(mode, initiatorName, action.sessionData.id, initiatorId));
                 }
 
 
